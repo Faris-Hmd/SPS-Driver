@@ -14,25 +14,9 @@ import {
   QueryConstraint,
   orderBy,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, ordersRef } from "@/lib/firebase";
 import { revalidatePath } from "next/cache";
 import { OrderData } from "@/types/productsTypes";
-
-const COL = "orders";
-
-/**
- * GET: Returns a strictly typed OrderData or null
- */
-export async function getOrder(id: string): Promise<OrderData | null> {
-  const snap = await getDoc(doc(db, COL, id));
-  if (!snap.exists()) return null;
-  console.log("get order from server ", id);
-
-  return {
-    ...snap.data(),
-    id: snap.id,
-  } as OrderData;
-}
 
 /**
  * UPDATE: Uses Partial<OrderData> to allow updating only specific fields safely
@@ -41,11 +25,7 @@ export async function upOrder(
   id: string,
   data: Partial<OrderData>,
 ): Promise<void> {
-  // We cast to any here only because Firestore's updateDoc type is very broad,
-  // but our function argument 'data' remains strictly typed for the caller.
-  await updateDoc(doc(db, COL, id), data as any);
-  console.log("up order from server");
-
+  await updateDoc(doc(ordersRef, id), data as any);
   revalidatePath("/orders");
 }
 
@@ -57,8 +37,6 @@ type OrderFilter = {
 export async function getOrdersWh(
   filters: OrderFilter[],
 ): Promise<OrderData[]> {
-  console.log("get where order from server");
-
   try {
     // 1. Map our filter objects into Firestore where() constraints
     const constraints: QueryConstraint[] = filters.map((f) =>
@@ -66,7 +44,7 @@ export async function getOrdersWh(
     );
 
     // 2. Create the query with all constraints spread into the function
-    const q = query(collection(db, COL), ...constraints);
+    const q = query(ordersRef, ...constraints);
 
     // 3. Execute
     const snap = await getDocs(q);

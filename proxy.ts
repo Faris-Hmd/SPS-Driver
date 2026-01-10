@@ -1,20 +1,44 @@
-import { NextRequest, NextResponse } from "next/server.js";
-export { auth as middleware } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
-// const protRoute = ["/wishlist", "/Dashboard", "/Dashboard/productsSet"];
-export default async function proxy(request: NextRequest) {
-  const sess = await auth();
-  if (sess === null)
-    return NextResponse.redirect(new URL("/login", request.url));
-  else return NextResponse.next();
+
+export default async function middleware(request: NextRequest) {
+  const session = await auth();
+  const { pathname } = request.nextUrl;
+
+  // 1. Allow internal Next.js requests, static files, and public assets
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname.includes("favicon.ico") ||
+    pathname === "/login"
+  ) {
+    return NextResponse.next();
+  }
+
+  // 2. System Firewall: If no session exists, redirect to Login
+  if (!session) {
+    const loginUrl = new URL("/login", request.url);
+    // Optional: Store the intended destination to redirect back after login
+    loginUrl.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // 3. Authorized Session: Proceed to terminal
+  return NextResponse.next();
 }
+
+// Manifest-style matcher (explicit path listing)
 export const config = {
   matcher: [
-    "/wishlist",
-    "/dashboard/:path*",
-    "/orders",
-    "/checkout/:path*",
-    "/profile/:path*",
-    "/driver/:path*",
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - manifest.json (web manifest)
+     */
+    "/((?!api|_next/static|_next/image|favicon.ico|manifest.json|login|/).*)",
   ],
 };

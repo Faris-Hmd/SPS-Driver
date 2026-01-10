@@ -14,7 +14,6 @@ import {
   Loader2,
   User,
   ChevronRight,
-  History,
   Truck,
 } from "lucide-react";
 import { toast } from "sonner";

@@ -14,9 +14,8 @@ const roboto = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Sudan PC | Premium Gaming Components",
-  description:
-    "The ultimate destination for PC builders and gamers in Sudan. Quality components, rapid delivery.",
+  title: "SPS Driver",
+  description: "SPS Driver",
 };
 
 export default function RootLayout({
