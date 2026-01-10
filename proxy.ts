@@ -39,6 +39,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - manifest.json (web manifest)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|manifest.json|login|/).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|manifest.json|manifest.webmanifest|icon-|apple-icon|login|/).*)",
   ],
 };
