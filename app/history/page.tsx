@@ -1,89 +1,136 @@
 "use client";
+
+import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { getOrdersWh } from "@/services/ordersServices";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { OrderData } from "@/types/productsTypes";
 import { getDriverInfo } from "@/services/userServices";
+import { useState, useMemo } from "react";
 import {
-  Package,
+  Loader2,
   MapPin,
   Calendar,
   CheckCircle2,
   Truck,
-  ChevronRight,
   Clock,
+  Package,
+  CalendarDays,
+  DollarSign,
 } from "lucide-react";
-import { Driver } from "@/types/userTypes";
+import { OrderData } from "@/types/productsTypes";
+
+type SortOption = "date" | "value";
 
 export default function HistoryPage() {
   const { data: session } = useSession();
-  const [orders, setOrders] = useState<OrderData[]>([]);
-  const [driver, setDriver] = useState<Driver | null>(null);
-  const [fetching, setFetching] = useState(true);
-  useEffect(() => {
-    const loadOrders = async () => {
-      if (session?.user?.email) {
-        try {
-          const driver = await getDriverInfo(session.user.email);
-          setDriver(driver);
-          console.log(driver);
+  const [sortBy, setSortBy] = useState<SortOption>("date");
+  const [filterDelivered, setFilterDelivered] = useState(false);
 
-          const data = await getOrdersWh([
-            { field: "driverId", op: "==", val: driver?.id },
-          ]);
-          setOrders(data);
-          console.log(data);
-        } catch (error) {
-          toast.error("SYSTEM_FETCH_ERROR");
-        } finally {
-          setFetching(false);
-        }
-      } else if (session === null) {
-        setFetching(false);
+  const { data: driver } = useSWR(
+    session?.user?.email ? ["driver-info", session.user.email] : null,
+    ([, email]) => getDriverInfo(email),
+    {
+      revalidateIfStale: false,
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
+    },
+  );
+
+  const { data: orders, isLoading } = useSWR(
+    driver?.id ? ["driver-orders", driver.id] : null,
+    async ([, driverId]) =>
+      await getOrdersWh([{ field: "driverId", op: "==", val: driverId }]),
+    {
+      revalidateIfStale: false,
+      revalidateOnFocus: false,
+      dedupingInterval: 10000,
+    },
+  );
+
+  const processedOrders = useMemo(() => {
+    if (!orders) return [];
+
+    // 1. Filter
+    let result = filterDelivered
+      ? orders.filter((o) => o.status === "Delivered")
+      : orders;
+
+    // 2. Sort
+    return [...result].sort((a, b) => {
+      if (sortBy === "date") {
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
       }
-    };
+      return b.totalAmount - a.totalAmount;
+    });
+  }, [orders, sortBy, filterDelivered]);
 
-    if (session !== undefined) loadOrders();
-  }, [session]);
-  if (!session) {
+  if (!session || isLoading) {
     return (
-      <div>
-        <h1>History</h1>
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 bg-white dark:bg-[#0a0c12]">
+        <Loader2 className="animate-spin text-blue-600" size={32} />
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 text-center">
+          Accessing Terminal
+          <br />
+          Archive...
+        </p>
       </div>
     );
   }
 
-  if (fetching) {
-    return (
-      <div>
-        <h1>History</h1>
-      </div>
-    );
-  }
   return (
-    <div>
-      <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#0a0c12]/80 backdrop-blur-md py-4 px-5 border-b border-slate-100 dark:border-white/5">
-        <div className="max-w-xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-              <Truck size={20} />
-            </div>
-            <div>
-              <h1 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter">
-                <span className="text-blue-600">Previous Orders</span>
-              </h1>
-            </div>
+    <div className="min-h-screen bg-slate-50/50 dark:bg-[#0a0c12] pb-10">
+      <header className="sticky top-0 z-50 bg-white dark:bg-[#0a0c12] p-4 shadow">
+        <div className="max-w-xl mx-auto flex  items-center justify-between gap-2">
+          {/* Centered Title */}
+          <div className="text-center">
+            <h1 className="text-xl font-black dark:text-white uppercase ">
+              History <span className="text-blue-600">Logs</span>
+            </h1>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">
+              Terminal Archive
+            </p>
           </div>
-          <div className="bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/5">
-            <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tight">
-              {orders.length} orders
-            </span>
+
+          {/* Centered Segmented Control */}
+          <div className="w-full max-w-[230px] flex bg-slate-100 dark:bg-white/5 p-1 rounded-xl border border-slate-200 dark:border-white/5">
+            <button
+              onClick={() => setSortBy("date")}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${
+                sortBy === "date"
+                  ? "bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              }`}
+            >
+              <CalendarDays size={14} />
+              Recent
+            </button>
+            <button
+              onClick={() => setSortBy("value")}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${
+                sortBy === "value"
+                  ? "bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-sm"
+                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              }`}
+            >
+              <DollarSign size={14} />
+              Value
+            </button>
           </div>
         </div>
       </header>
-      <div className="max-w-xl mx-auto p-2">
-        <OrderHistory orders={orders} />
+
+      <div className="max-w-xl mx-auto p-4">
+        {processedOrders.length > 0 ? (
+          <OrderHistory orders={processedOrders} />
+        ) : (
+          <div className="py-20 text-center opacity-40">
+            <Package className="mx-auto mb-4" size={48} />
+            <p className="text-[10px] font-black uppercase tracking-widest">
+              No matching logs found
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

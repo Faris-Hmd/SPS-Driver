@@ -14,7 +14,6 @@ import {
   Loader2,
   User,
   ChevronRight,
-  Truck,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -28,7 +27,11 @@ export default function DriverTaskPage() {
   const { data: driver, isLoading: driverLoading } = useSWR(
     session?.user?.email ? `driver-email-${session.user.email}` : null,
     () => getDriverByEmail(session?.user?.email as string),
-    { revalidateOnFocus: false, dedupingInterval: 60000 },
+    {
+      revalidateIfStale: false,
+      revalidateOnFocus: false, // Auto-update when driver returns to the app
+      dedupingInterval: 10000, // Prevents multiple requests within 5 seconds
+    },
   );
 
   const {
@@ -39,7 +42,11 @@ export default function DriverTaskPage() {
     driver?.id ? `driver-orders-${driver.id}` : null,
     () =>
       getOrdersWh([{ field: "driverId", op: "==", val: driver?.id as string }]),
-    { revalidateOnFocus: false, dedupingInterval: 60000 },
+    {
+      revalidateIfStale: false,
+      revalidateOnFocus: false, // Auto-update when driver returns to the app
+      dedupingInterval: 10000, // Prevents multiple requests within 5 seconds
+    },
   );
 
   const handleFinalHandover = async () => {
@@ -125,12 +132,9 @@ export default function DriverTaskPage() {
       )}
 
       {/* --- HEADER --- */}
-      <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#0a0c12]/80 backdrop-blur-md py-4 px-5 border-b border-slate-100 dark:border-white/5">
+      <header className="sticky top-0 z-50 bg-white dark:bg-[#0a0c12] p-4 shadow">
         <div className="max-w-xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-              <Truck size={20} />
-            </div>
             <div>
               <h1 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter">
                 {driver?.name.split(" ")[0]}{" "}

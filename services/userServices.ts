@@ -1,20 +1,7 @@
 "use server";
-
-import { db } from "@/lib/firebase";
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  setDoc,
-  updateDoc,
-  where,
-} from "firebase/firestore";
-import { revalidatePath } from "next/cache";
+import { driversRef } from "@/lib/firebase";
+import { doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { Driver, UserData } from "@/types/userTypes";
-
-const COL = "users";
 
 /**
  * GET: Returns user data including shipping info
@@ -24,7 +11,7 @@ export async function getUser(email: string): Promise<UserData | null> {
   console.log("get user from server", email);
 
   try {
-    const snap = await getDoc(doc(db, COL, email));
+    const snap = await getDoc(doc(driversRef, email));
     if (!snap.exists()) return null;
 
     return {
@@ -44,9 +31,7 @@ export async function getDriverInfo(
   console.log("get driver info from server", email);
 
   try {
-    const snap = await getDocs(
-      query(collection(db, "drivers"), where("email", "==", email)),
-    );
+    const snap = await getDocs(query(driversRef, where("email", "==", email)));
     if (!snap.docs.length) return null;
 
     return {
