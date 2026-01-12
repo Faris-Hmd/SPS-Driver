@@ -14,6 +14,8 @@ import {
   Loader2,
   User,
   ChevronRight,
+  Navigation,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -29,8 +31,8 @@ export default function DriverTaskPage() {
     () => getDriverByEmail(session?.user?.email as string),
     {
       revalidateIfStale: false,
-      revalidateOnFocus: false, // Auto-update when driver returns to the app
-      dedupingInterval: 10000, // Prevents multiple requests within 5 seconds
+      revalidateOnFocus: false,
+      dedupingInterval: 10000,
     },
   );
 
@@ -44,8 +46,8 @@ export default function DriverTaskPage() {
       getOrdersWh([{ field: "driverId", op: "==", val: driver?.id as string }]),
     {
       revalidateIfStale: false,
-      revalidateOnFocus: false, // Auto-update when driver returns to the app
-      dedupingInterval: 10000, // Prevents multiple requests within 5 seconds
+      revalidateOnFocus: false,
+      dedupingInterval: 10000,
     },
   );
 
@@ -88,14 +90,14 @@ export default function DriverTaskPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-[#05070a] pb-20 transition-colors duration-500">
       {/* --- CONFIRMATION MODAL --- */}
       {orderToConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center sm:items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-white dark:bg-[#0a0c12] rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/10 animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-white dark:bg-[#0a0c12] rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/10">
             <div className="p-6 text-center">
               <div className="w-12 h-12 bg-blue-600/10 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <User size={24} />
               </div>
               <div className="space-y-1">
-                <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">
+                <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter">
                   Handover To:
                 </h3>
                 <p className="text-xl font-black text-blue-600 dark:text-blue-400 uppercase leading-tight">
@@ -109,7 +111,7 @@ export default function DriverTaskPage() {
                 <button
                   disabled={isSubmitting}
                   onClick={handleFinalHandover}
-                  className="w-full py-4 bg-blue-600 text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30 active:scale-95 transition-all disabled:opacity-50"
+                  className="w-full py-4 bg-blue-600 text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30 disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     <Loader2 className="animate-spin" size={16} />
@@ -132,16 +134,12 @@ export default function DriverTaskPage() {
       )}
 
       {/* --- HEADER --- */}
-      <header className="sticky top-0 z-50 bg-white dark:bg-[#0a0c12] p-4 shadow">
+      <header className="sticky top-0 z-50 bg-white dark:bg-[#0a0c12] p-4 shadow-sm border-b dark:border-white/5">
         <div className="max-w-xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter">
-                {driver?.name.split(" ")[0]}{" "}
-                <span className="text-blue-600">Ops</span>
-              </h1>
-            </div>
-          </div>
+          <h1 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter">
+            {driver?.name?.split(" ")[0] || "Driver"}{" "}
+            <span className="text-blue-600">Ops</span>
+          </h1>
           <div className="bg-slate-100 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/5">
             <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tight">
               {activeOrders.length} Tasks
@@ -150,16 +148,14 @@ export default function DriverTaskPage() {
         </div>
       </header>
 
-      <main className="max-w-xl mx-auto p-4 space-y-8">
-        {/* Active Assignments */}
+      <main className="max-w-xl mx-auto p-4 space-y-6">
         <section className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-              Active Assignments
-            </h2>
-          </div>
+          <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
+            Active Assignments
+          </h2>
+
           {activeOrders.length === 0 ? (
-            <div className="bg-white dark:bg-[#0a0c12] rounded-2xl p-10 text-center border border-slate-100 dark:border-white/5 shadow-sm">
+            <div className="bg-white dark:bg-[#0a0c12] rounded-2xl p-10 text-center border border-slate-100 dark:border-white/5">
               <CheckCircle2
                 size={32}
                 className="text-emerald-500 mx-auto mb-2"
@@ -167,77 +163,94 @@ export default function DriverTaskPage() {
               <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter">
                 No Active Payloads
               </p>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">
-                Standing by for dispatch...
-              </p>
             </div>
           ) : (
             activeOrders.map((order) => (
               <div
                 key={order.id}
-                className="bg-white dark:bg-[#11141d] rounded-2xl overflow-hidden border border-slate-100 dark:border-white/5 shadow-sm transition-all hover:border-blue-500/30"
+                className="bg-white dark:bg-[#11141d] rounded-2xl overflow-hidden border border-slate-100 dark:border-white/5 shadow-sm transition-all"
               >
-                <div className="p-4 space-y-4">
+                <div className="p-5 space-y-5">
+                  {/* Top Bar: Order ID and Status */}
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-black text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md uppercase">
-                      #{order.id.slice(-6)}
+                    <span className="text-[10px] font-black text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1 rounded-md uppercase tracking-wider">
+                      TASK #{order.id.slice(-6).toUpperCase()}
                     </span>
                     <span className="text-[9px] font-black text-slate-400 uppercase flex items-center gap-1.5 tracking-widest">
-                      <Clock size={10} /> Fast Track
+                      <Clock size={12} className="text-blue-500" />{" "}
+                      {order.status}
                     </span>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
-                        <User size={14} />
+                  {/* Customer & Location Details */}
+                  <div className="space-y-4">
+                    {/* Receiver */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
+                        <User size={16} />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">
                           Receiver
                         </p>
-                        <p className="text-xs font-bold dark:text-white truncate">
+                        <p className="text-sm font-black text-slate-900 dark:text-white truncate uppercase tracking-tighter">
                           {order.customer_name || "Guest Client"}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-rose-500 shrink-0">
-                        <MapPin size={14} />
+
+                    {/* Coordinates / Address */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 shrink-0">
+                        <MapPin size={16} />
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
-                          Coordinates
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">
+                          Coordinates:{" "}
+                          <span className="text-blue-600">
+                            {order.shippingInfo?.city || "Unknown City"}
+                          </span>
                         </p>
-                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 truncate">
-                          {order.shippingInfo
-                            ? `${order.shippingInfo.address}`
-                            : "Address Hidden"}
+                        <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 leading-snug">
+                          {order.shippingInfo?.address || "No address provided"}
                         </p>
+
+                        {/* Map Navigation Link */}
+                        {order.shippingInfo?.googleMapsLink && (
+                          <a
+                            href={order.shippingInfo.googleMapsLink}
+                            target="_blank"
+                            className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 bg-blue-600/10 text-blue-600 rounded-lg text-[10px] font-black uppercase tracking-tight hover:bg-blue-600 hover:text-white transition-all"
+                          >
+                            <Navigation size={10} /> Launch Navigation
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  {/* Comms Grid */}
+                  <div className="grid grid-cols-2 gap-3 pt-2">
                     <Link
                       href={`tel:${order.shippingInfo?.phone}`}
-                      className="py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-white/5 text-center text-[10px] font-black uppercase text-slate-900 dark:text-white flex items-center justify-center gap-2 hover:bg-slate-100 transition-all"
+                      className="py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-white/5 text-center text-[10px] font-black uppercase text-slate-900 dark:text-white flex items-center justify-center gap-2"
                     >
-                      <Phone size={12} /> Audio
+                      <Phone size={12} /> Audio Call
                     </Link>
                     <Link
                       href={`https://wa.me/${(order.shippingInfo?.phone || "").replace(/\D/g, "")}`}
                       target="_blank"
-                      className="py-2.5 rounded-xl bg-emerald-600 text-white text-center text-[10px] font-black uppercase flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 hover:bg-emerald-700 transition-all"
+                      className="py-3 rounded-xl bg-emerald-600 text-white text-center text-[10px] font-black uppercase flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10"
                     >
-                      <MessageSquare size={12} /> Message
+                      <MessageSquare size={12} /> WhatsApp
                     </Link>
                   </div>
                 </div>
 
+                {/* Footer Action */}
                 <button
                   onClick={() => setOrderToConfirm(order)}
-                  className="w-full py-4 bg-slate-900 dark:bg-blue-600 text-white font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 active:bg-blue-700 transition-all"
+                  className="w-full py-4 bg-slate-900 dark:bg-blue-600 text-white font-black text-[11px] uppercase tracking-[0.25em] flex items-center justify-center gap-2 hover:bg-black dark:hover:bg-blue-700 transition-all border-t dark:border-white/5"
                 >
                   Finalize Handover <ChevronRight size={14} />
                 </button>
